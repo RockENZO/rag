@@ -1,0 +1,5 @@
+langchain
+langchain-groq
+llama-index
+llama-index-llms-groq
+googlemaps
