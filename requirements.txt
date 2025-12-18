@@ -2,4 +2,7 @@ langchain
 langchain-groq
 llama-index
 llama-index-llms-groq
+llama-index-embeddings-fastembed
+llama-index-langchain
+fastembed
 googlemaps
