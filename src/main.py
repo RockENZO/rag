@@ -48,35 +48,42 @@ while True:
     
     location_str = location_response.title()  # Capitalize for geocoding
     
-    # Geocode to get lat/lng
-    geocode_result = gmaps.geocode(location_str)
-    if geocode_result:
-        lat = geocode_result[0]['geometry']['location']['lat']
-        lng = geocode_result[0]['geometry']['location']['lng']
-        try:
-            # Use Google Maps Places API for nearby restaurants
-            places_result = gmaps.places_nearby(location=(lat, lng), radius=5000, type='restaurant')
-            restaurants = places_result.get('results', [])[:10]  # Top 10
-            
-            if restaurants:
-                # Create LlamaIndex documents for RAG
-                documents = []
-                for r in restaurants:
-                    text = f"Name: {r['name']}, Rating: {r.get('rating', 'N/A')}, Address: {r.get('vicinity', 'N/A')}, Price Level: {r.get('price_level', 'N/A')}"
-                    documents.append(Document(text=text))
-                
-                # Build vector index with LlamaIndex
-                index = VectorStoreIndex.from_documents(documents, embed_model=embed_model)
-                
-                # Create query engine with LlamaIndex
-                query_engine = index.as_query_engine(llm=llm, text_qa_template=qa_prompt)
-                
-                # Run the RAG query
-                response = query_engine.query(user_query)
-                print("Restaurant Recommendations:", response)
-            else:
-                print("No restaurants found near that location.")
-        except Exception as e:
-            print(f"Error fetching restaurants: {e}. Ensure Places API is enabled for your Google Maps key.")
-    else:
-        print("Could not geocode the location.")
+    # Geocode to get lat/lng. Keep API/network failures separate from an
+    # empty result so the user gets an actionable message.
+    try:
+        geocode_result = gmaps.geocode(location_str)
+    except Exception as e:
+        print(f"Error geocoding {location_str}: {e}. Check network access, billing and Geocoding API enablement.")
+        continue
+
+    if not geocode_result:
+        print(f"Could not find '{location_str}'. Try a more specific city name, or add the country.")
+        continue
+
+    lat = geocode_result[0]['geometry']['location']['lat']
+    lng = geocode_result[0]['geometry']['location']['lng']
+    try:
+        # Use Google Maps Places API for nearby restaurants
+        places_result = gmaps.places_nearby(location=(lat, lng), radius=5000, type='restaurant')
+        restaurants = places_result.get('results', [])[:10]  # Top 10
+
+        if restaurants:
+            # Create LlamaIndex documents for RAG
+            documents = []
+            for r in restaurants:
+                text = f"Name: {r['name']}, Rating: {r.get('rating', 'N/A')}, Address: {r.get('vicinity', 'N/A')}, Price Level: {r.get('price_level', 'N/A')}"
+                documents.append(Document(text=text))
+
+            # Build vector index with LlamaIndex
+            index = VectorStoreIndex.from_documents(documents, embed_model=embed_model)
+
+            # Create query engine with LlamaIndex
+            query_engine = index.as_query_engine(llm=llm, text_qa_template=qa_prompt)
+
+            # Run the RAG query
+            response = query_engine.query(user_query)
+            print("Restaurant Recommendations:", response)
+        else:
+            print("No restaurants found near that location.")
+    except Exception as e:
+        print(f"Error fetching restaurants: {e}. Ensure Places API is enabled for your Google Maps key.")

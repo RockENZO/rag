@@ -8,6 +8,10 @@ This project is a Retrieval-Augmented Generation (RAG) system for restaurant rec
 - Fetches top 10 restaurants near the location using Google Maps Places API.
 - Uses Groq LLM to generate personalized recommendations based on retrieved data.
 
+## Scope and limitations
+
+This is a small learning/demo project, not a production restaurant recommender. It retrieves one page of roughly 10 nearby restaurants and indexes those records; for data this small, passing the same rows directly in the prompt would likely be simpler and cheaper, and the vector index is mainly here to demonstrate a RAG pipeline. Recommendations depend on Google Maps data, the model's interpretation and the extracted location, so they can be incomplete or wrong. There is no accuracy benchmark or automated test suite.
+
 ## Setup
 
 Install dependencies from the repository root.
