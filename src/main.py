@@ -4,6 +4,8 @@ from llama_index.embeddings.fastembed import FastEmbedEmbedding
 from llama_index.llms.groq import Groq
 from googlemaps import Client as GoogleMapsClient
 
+from location import geocode_location
+
 # Disable tokenizers parallelism warning
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -48,20 +50,15 @@ while True:
     
     location_str = location_response.title()  # Capitalize for geocoding
     
-    # Geocode to get lat/lng. Keep API/network failures separate from an
-    # empty result so the user gets an actionable message.
-    try:
-        geocode_result = gmaps.geocode(location_str)
-    except Exception as e:
-        print(f"Error geocoding {location_str}: {e}. Check network access, billing and Geocoding API enablement.")
+    # Geocode to get lat/lng. The helper separates API failures from an empty
+    # result so each gets an actionable message.
+    coords, message = geocode_location(gmaps, location_str)
+    if message:
+        print(message)
         continue
 
-    if not geocode_result:
-        print(f"Could not find '{location_str}'. Try a more specific city name, or add the country.")
-        continue
-
-    lat = geocode_result[0]['geometry']['location']['lat']
-    lng = geocode_result[0]['geometry']['location']['lng']
+    lat = coords["lat"]
+    lng = coords["lng"]
     try:
         # Use Google Maps Places API for nearby restaurants
         places_result = gmaps.places_nearby(location=(lat, lng), radius=5000, type='restaurant')
